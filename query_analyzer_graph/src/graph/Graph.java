@@ -20,6 +20,7 @@ import parser.ParserNetwork;
 import parser.ParserXML;
 import enviroment.Analyzer;
 import enviroment.Attempt;
+import extra.TPCHUtils;
 import extra.XmlFileFilter;
 
 import javax.swing.JFileChooser;
@@ -41,6 +42,7 @@ public class Graph {
 	private boolean queryLoaded;
 	private boolean networkLoaded;
 	private String outputDirectory;
+	public Credits creditsFrame; 
 
 	/**
 	 * Launch the application.
@@ -95,6 +97,7 @@ public class Graph {
 		outputDirectory = decodedPath; //directory di default
 		
 		frmTpchAnalysis = new JFrame();
+		frmTpchAnalysis.setIconImage(Toolkit.getDefaultToolkit().getImage(Graph.class.getResource("/images/logo.png")));
 		frmTpchAnalysis.setTitle("TPCH Analyzer");
 		frmTpchAnalysis.setResizable(false);
 		frmTpchAnalysis.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -186,6 +189,10 @@ public class Graph {
 		JScrollPane jsp = new JScrollPane(textPane);
 		jsp.setBounds(10, 296, 624, 301);
 		frmTpchAnalysis.getContentPane().add(jsp);		
+		
+		JButton btnCredits = new JButton("Credits");
+		btnCredits.setBounds(567, 7, 67, 23);
+		frmTpchAnalysis.getContentPane().add(btnCredits);
 		
 		
 		//directory dell'output
@@ -297,6 +304,8 @@ public class Graph {
 				
 				ParserXML parser = new ParserXML(); //parser che crea la struttura ad albero
 				ParserNetwork parsernetwork = new ParserNetwork();
+				@SuppressWarnings("unused")
+				TPCHUtils tpchUtils = new TPCHUtils();
 							
 				/* PARSING DEL NETWORK */
 				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
@@ -336,6 +345,18 @@ public class Graph {
 				lblMinTimeRes.setText(String.valueOf(analyzer.getMinTime()));
 				lblGeneratedOutputRes.setText(resultFile);
 				textPane.setText("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations()+"\nMIN COST OPERATIONS:"+analyzer.getMinCostOperations());
+				
+			}
+		});
+		
+		
+		//credits
+		btnCredits.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+			
+				creditsFrame = new Credits();
+				creditsFrame.setVisible(true);
 				
 			}
 		});
