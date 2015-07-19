@@ -1,20 +1,25 @@
 package graph;
 
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
 
 import model.EncSchemes;
-import model.Operator;
 import network.Network;
 import parser.ParserNetwork;
-import parser.ParserSimpleXML;
 import parser.ParserXML;
-import extra.TPCHUtils;
+import enviroment.Analyzer;
+import enviroment.Attempt;
 import extra.XmlFileFilter;
 
 import javax.swing.JFileChooser;
@@ -24,6 +29,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import javax.swing.UIManager;
 
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.Font;
+
 public class Graph {
 
 	private JFrame frmTpchAnalysis;
@@ -31,6 +40,7 @@ public class Graph {
 	private File networkInput;
 	private boolean queryLoaded;
 	private boolean networkLoaded;
+	private String outputDirectory;
 
 	/**
 	 * Launch the application.
@@ -41,11 +51,6 @@ public class Graph {
 				try {
 						Graph window = new Graph();
 						window.frmTpchAnalysis.setVisible(true);
-						
-						ParserXML parser = new ParserXML(); //parser che crea la struttura ad albero
-						ParserSimpleXML parserSimple = new ParserSimpleXML(); //parser che non si preoccupa della struttura ma estrae gli operatori di una query
-						ParserNetwork parsernetwork = new ParserNetwork();
-											
 					
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -76,55 +81,72 @@ public class Graph {
 		queryInput = null;
 		networkInput = null;
 		
+		queryLoaded = false;
+		networkLoaded = false;
+		
+		//path corrente del file
+		String decodedPath = "";
+		String path = Graph.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+		try {
+			decodedPath = URLDecoder.decode(path, "UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		}		
+		outputDirectory = decodedPath; //directory di default
+		
 		frmTpchAnalysis = new JFrame();
 		frmTpchAnalysis.setTitle("TPCH Analyzer");
 		frmTpchAnalysis.setResizable(false);
-		frmTpchAnalysis.setBounds(100, 100, 450, 680);
 		frmTpchAnalysis.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTpchAnalysis.getContentPane().setLayout(null);
 		
+		//dimensione dello schermo per centrare la finestra
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+		Double width = screenSize.getWidth();
+		Double height = screenSize.getHeight();		
+		frmTpchAnalysis.setBounds((width.intValue()/2)-325, (height.intValue()/2)-340, 650, 680);		
+		
 		JLabel lblTpchQuery = new JLabel("TPCH Query");
+		lblTpchQuery.setFont(new Font("Tahoma", Font.BOLD, 11));
 		lblTpchQuery.setBounds(10, 11, 424, 14);
 		frmTpchAnalysis.getContentPane().add(lblTpchQuery);
 		
 		JLabel lblNetworkConfiguration = new JLabel("Network configuration");
+		lblNetworkConfiguration.setFont(new Font("Tahoma", Font.BOLD, 11));
 		lblNetworkConfiguration.setBounds(10, 67, 424, 14);
 		frmTpchAnalysis.getContentPane().add(lblNetworkConfiguration);
 		
-		JLabel lblMinTime = new JLabel("Min time (sec.):");
-		lblMinTime.setBounds(10, 123, 96, 14);
+		final JLabel lblMinTime = new JLabel("Min time (sec.):");
+		lblMinTime.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblMinTime.setBounds(10, 193, 136, 14);
 		frmTpchAnalysis.getContentPane().add(lblMinTime);
 		
-		JLabel lblNotCalculated = new JLabel("not calculated");
-		lblNotCalculated.setBounds(116, 123, 318, 14);
-		frmTpchAnalysis.getContentPane().add(lblNotCalculated);
+		final JLabel lblMinTimeRes = new JLabel("not calculated");
+		lblMinTimeRes.setBounds(156, 193, 448, 14);
+		frmTpchAnalysis.getContentPane().add(lblMinTimeRes);
 		
-		JLabel lblMinCost = new JLabel("Min cost (\u20AC):");
-		lblMinCost.setBounds(10, 148, 96, 14);
+		final JLabel lblMinCost = new JLabel("Min cost (\u20AC):");
+		lblMinCost.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblMinCost.setBounds(10, 218, 136, 14);
 		frmTpchAnalysis.getContentPane().add(lblMinCost);
 		
-		JLabel label_1 = new JLabel("not calculated");
-		label_1.setBounds(116, 148, 318, 14);
-		frmTpchAnalysis.getContentPane().add(label_1);
+		final JLabel lblMinCostRes = new JLabel("not calculated");
+		lblMinCostRes.setBounds(156, 218, 448, 14);
+		frmTpchAnalysis.getContentPane().add(lblMinCostRes);
 		
 		JLabel lblOperations = new JLabel("Operations");
-		lblOperations.setBounds(10, 213, 424, 14);
+		lblOperations.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblOperations.setBounds(10, 282, 424, 14);
 		frmTpchAnalysis.getContentPane().add(lblOperations);
 		
-		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(191, 307, -120, -32);
-		frmTpchAnalysis.getContentPane().add(scrollPane);
-		
-		JTextPane textPane = new JTextPane();
-		textPane.setBounds(10, 238, 424, 359);
-		frmTpchAnalysis.getContentPane().add(textPane);
-		
 		JLabel lblGeneratedOutput = new JLabel("Generated output:");
-		lblGeneratedOutput.setBounds(10, 174, 96, 14);
+		lblGeneratedOutput.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblGeneratedOutput.setBounds(10, 244, 136, 14);
 		frmTpchAnalysis.getContentPane().add(lblGeneratedOutput);
 		
 		final JButton btnAnalyze = new JButton("Analyze");
-		btnAnalyze.setBounds(10, 608, 424, 23);
+		btnAnalyze.setEnabled(false);
+		btnAnalyze.setBounds(10, 608, 624, 23);
 		frmTpchAnalysis.getContentPane().add(btnAnalyze);
 		
 		JButton btnLoadQuery = new JButton("Load");
@@ -136,19 +158,62 @@ public class Graph {
 		frmTpchAnalysis.getContentPane().add(btnLoadNetwork);
 		
 		final JLabel lblLoadQuery = new JLabel("no input");
-		lblLoadQuery.setBounds(191, 36, 46, 14);
+		lblLoadQuery.setBounds(191, 36, 243, 14);
 		frmTpchAnalysis.getContentPane().add(lblLoadQuery);
 		
-		JLabel lblLoadNetwork = new JLabel("no input");
-		lblLoadNetwork.setBounds(191, 92, 46, 14);
+		final JLabel lblLoadNetwork = new JLabel("no input");
+		lblLoadNetwork.setBounds(191, 92, 243, 14);
 		frmTpchAnalysis.getContentPane().add(lblLoadNetwork);
 		
+		JButton btnOutputFolder = new JButton("Select");
+		btnOutputFolder.setBounds(10, 141, 175, 23);
+		frmTpchAnalysis.getContentPane().add(btnOutputFolder);
 		
+		final JLabel lblOutputFolder = new JLabel(outputDirectory);
+		lblOutputFolder.setBounds(191, 145, 243, 14);
+		frmTpchAnalysis.getContentPane().add(lblOutputFolder);
+		
+		JLabel lblOutputFolder_1 = new JLabel("Output folder");
+		lblOutputFolder_1.setFont(new Font("Tahoma", Font.BOLD, 11));
+		lblOutputFolder_1.setBounds(10, 121, 424, 14);
+		frmTpchAnalysis.getContentPane().add(lblOutputFolder_1);
+		
+		final JLabel lblGeneratedOutputRes = new JLabel("");
+		lblGeneratedOutputRes.setBounds(156, 244, 448, 14);
+		frmTpchAnalysis.getContentPane().add(lblGeneratedOutputRes);
+		
+		final JTextPane textPane = new JTextPane();
+		JScrollPane jsp = new JScrollPane(textPane);
+		jsp.setBounds(10, 296, 624, 301);
+		frmTpchAnalysis.getContentPane().add(jsp);		
+		
+		
+		//directory dell'output
+		//SELEZIONE CARTELLA DI DESTINAZIONE 
+		btnOutputFolder.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				
+				JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				Integer returnAction = fileChooser.showOpenDialog(frmTpchAnalysis);
+								
+				if(returnAction == 0)
+				{
+					//selezionata la directory
+					File currentDirectory = fileChooser.getSelectedFile();
+					outputDirectory = currentDirectory.getPath();
+					lblOutputFolder.setText(outputDirectory);
+				}
+			}
+		});
+		
+		//caricamento della query
 		btnLoadQuery.addMouseListener(new MouseAdapter() {
 				@Override
 				public void mouseClicked(MouseEvent arg0) {				
 				JFileChooser fileChooser = new JFileChooser();
-				fileChooser.setFileFilter(new XmlFileFilter()); //filtro sui file solo di tipo sql
+				fileChooser.setFileFilter(new XmlFileFilter()); //filtro sui file solo di tipo xml
 				Integer returnAction = fileChooser.showOpenDialog(frmTpchAnalysis);				
 				if(returnAction == 0)
 				{
@@ -182,6 +247,96 @@ public class Graph {
 					}
 					
 				}				
+			}
+		});
+		
+		//caricamento della configurazione di rete
+		btnLoadNetwork.addMouseListener(new MouseAdapter() {
+				@Override
+				public void mouseClicked(MouseEvent arg0) {				
+				JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setFileFilter(new XmlFileFilter()); //filtro sui file solo di tipo xml
+				Integer returnAction = fileChooser.showOpenDialog(frmTpchAnalysis);				
+				if(returnAction == 0)
+				{
+					networkInput = fileChooser.getSelectedFile();
+					
+					//verifico l'estensione
+					Boolean correctExt = false;					
+					String fileName = networkInput.getName();
+					int extPos = fileName.lastIndexOf(".");
+					if(extPos != -1) {
+					   String ext = fileName.substring(extPos,fileName.length());
+					   if(ext.toLowerCase().compareTo(".xml") == 0) //comparazione estensione
+						   correctExt = true;
+					}
+					
+					
+					if(correctExt)
+					{
+						
+						lblLoadNetwork.setText(fileName);
+						networkLoaded = true;
+						if(queryLoaded && networkLoaded)
+							btnAnalyze.setEnabled(true); //abilito l'analisi
+						
+					}
+					else
+					{
+						lblLoadNetwork.setText("No input");
+						networkLoaded = false;
+						btnAnalyze.setEnabled(false);						
+					}
+					
+				}				
+			}
+		});
+		
+		btnAnalyze.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				ParserXML parser = new ParserXML(); //parser che crea la struttura ad albero
+				ParserNetwork parsernetwork = new ParserNetwork();
+							
+				/* PARSING DEL NETWORK */
+				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
+				
+				/* CONFIGURAZIONE DEGLI OPERATORI */		
+				EncSchemes encSchemes = new EncSchemes();				
+				
+				/* ANALISI DELLE QUERY */
+				String resultFile = outputDirectory+"\\results.txt";
+				PrintWriter writer = null;
+				try {
+					writer = new PrintWriter(resultFile, "UTF-8");
+				} catch (FileNotFoundException | UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}	
+							
+				
+				/* SINGOLA QUERY */
+				writer.println("QUERY ");
+				parser.parseDocument(queryInput.getAbsolutePath());	//costruzione della lista di operatori
+				
+				ArrayList<Attempt> results = new ArrayList<Attempt>();
+				Analyzer analyzer = new Analyzer();
+				results = analyzer.Analyze(encSchemes, parser.operators, network); //nalaisi
+				
+				
+				writer.println("MIN TIME: "+analyzer.getMinTime()+ " sec.");
+				writer.println("MIN COST: "+analyzer.getMinCost()+ " €");
+				writer.println("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations());
+				writer.println("MIN COST OPERATIONS: "+analyzer.getMinCostOperations());
+				writer.println("RESULTS: "+results.toString());
+				
+				writer.close();
+				
+				//mostro anche nella form
+				lblMinCostRes.setText(String.valueOf(analyzer.getMinCost()));
+				lblMinTimeRes.setText(String.valueOf(analyzer.getMinTime()));
+				lblGeneratedOutputRes.setText(resultFile);
+				textPane.setText("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations()+"\nMIN COST OPERATIONS:"+analyzer.getMinCostOperations());
+				
 			}
 		});
 		
