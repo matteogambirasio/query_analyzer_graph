@@ -58,9 +58,9 @@ public class Credits extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
-		JLabel lblTpchAnlyzer = new JLabel("TPCH Anlyzer");
+		JLabel lblTpchAnlyzer = new JLabel("TPCH Analyzer");
 		lblTpchAnlyzer.setFont(new Font("Tahoma", Font.PLAIN, 22));
-		lblTpchAnlyzer.setBounds(10, 11, 142, 27);
+		lblTpchAnlyzer.setBounds(10, 11, 158, 27);
 		contentPane.add(lblTpchAnlyzer);
 		
 		JLabel lblTeam = new JLabel("Team");

@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
@@ -33,6 +32,7 @@ import javax.swing.UIManager;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Font;
+import java.awt.Color;
 
 public class Graph {
 
@@ -42,6 +42,7 @@ public class Graph {
 	private boolean queryLoaded;
 	private boolean networkLoaded;
 	private String outputDirectory;
+	private boolean outputDirectoryLoaded;
 	public Credits creditsFrame; 
 
 	/**
@@ -85,16 +86,10 @@ public class Graph {
 		
 		queryLoaded = false;
 		networkLoaded = false;
+		outputDirectoryLoaded = false;
 		
 		//path corrente del file
-		String decodedPath = "";
-		String path = Graph.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-		try {
-			decodedPath = URLDecoder.decode(path, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}		
-		outputDirectory = decodedPath; //directory di default
+		outputDirectory = "not selected"; //directory di default
 		
 		frmTpchAnalysis = new JFrame();
 		frmTpchAnalysis.setIconImage(Toolkit.getDefaultToolkit().getImage(Graph.class.getResource("/images/logo.png")));
@@ -125,7 +120,7 @@ public class Graph {
 		frmTpchAnalysis.getContentPane().add(lblMinTime);
 		
 		final JLabel lblMinTimeRes = new JLabel("not calculated");
-		lblMinTimeRes.setBounds(156, 193, 448, 14);
+		lblMinTimeRes.setBounds(191, 193, 368, 14);
 		frmTpchAnalysis.getContentPane().add(lblMinTimeRes);
 		
 		final JLabel lblMinCost = new JLabel("Min cost (\u20AC):");
@@ -134,12 +129,12 @@ public class Graph {
 		frmTpchAnalysis.getContentPane().add(lblMinCost);
 		
 		final JLabel lblMinCostRes = new JLabel("not calculated");
-		lblMinCostRes.setBounds(156, 218, 448, 14);
+		lblMinCostRes.setBounds(191, 218, 368, 14);
 		frmTpchAnalysis.getContentPane().add(lblMinCostRes);
 		
 		JLabel lblOperations = new JLabel("Operations");
 		lblOperations.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblOperations.setBounds(10, 282, 424, 14);
+		lblOperations.setBounds(10, 271, 424, 14);
 		frmTpchAnalysis.getContentPane().add(lblOperations);
 		
 		JLabel lblGeneratedOutput = new JLabel("Generated output:");
@@ -148,6 +143,7 @@ public class Graph {
 		frmTpchAnalysis.getContentPane().add(lblGeneratedOutput);
 		
 		final JButton btnAnalyze = new JButton("Analyze");
+		btnAnalyze.setBackground(new Color(173, 255, 47));
 		btnAnalyze.setEnabled(false);
 		btnAnalyze.setBounds(10, 608, 624, 23);
 		frmTpchAnalysis.getContentPane().add(btnAnalyze);
@@ -182,16 +178,17 @@ public class Graph {
 		frmTpchAnalysis.getContentPane().add(lblOutputFolder_1);
 		
 		final JLabel lblGeneratedOutputRes = new JLabel("");
-		lblGeneratedOutputRes.setBounds(156, 244, 448, 14);
+		lblGeneratedOutputRes.setBounds(191, 244, 413, 14);
 		frmTpchAnalysis.getContentPane().add(lblGeneratedOutputRes);
 		
 		final JTextPane textPane = new JTextPane();
+		textPane.setEditable(false);
 		JScrollPane jsp = new JScrollPane(textPane);
 		jsp.setBounds(10, 296, 624, 301);
 		frmTpchAnalysis.getContentPane().add(jsp);		
 		
 		JButton btnCredits = new JButton("Credits");
-		btnCredits.setBounds(567, 7, 67, 23);
+		btnCredits.setBounds(567, 269, 67, 23);
 		frmTpchAnalysis.getContentPane().add(btnCredits);
 		
 		
@@ -208,9 +205,13 @@ public class Graph {
 				if(returnAction == 0)
 				{
 					//selezionata la directory
+					outputDirectoryLoaded = true;
 					File currentDirectory = fileChooser.getSelectedFile();
 					outputDirectory = currentDirectory.getPath();
 					lblOutputFolder.setText(outputDirectory);
+					
+					if(queryLoaded && networkLoaded && outputDirectoryLoaded)
+						btnAnalyze.setEnabled(true); //abilito l'analisi
 				}
 			}
 		});
@@ -242,7 +243,7 @@ public class Graph {
 						
 						lblLoadQuery.setText(fileName);
 						queryLoaded = true;
-						if(queryLoaded && networkLoaded)
+						if(queryLoaded && networkLoaded && outputDirectoryLoaded)
 							btnAnalyze.setEnabled(true); //abilito l'analisi
 						
 					}
@@ -284,7 +285,7 @@ public class Graph {
 						
 						lblLoadNetwork.setText(fileName);
 						networkLoaded = true;
-						if(queryLoaded && networkLoaded)
+						if(queryLoaded && networkLoaded && outputDirectoryLoaded)
 							btnAnalyze.setEnabled(true); //abilito l'analisi
 						
 					}
@@ -309,11 +310,27 @@ public class Graph {
 							
 				/* PARSING DEL NETWORK */
 				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
+				if(network.checkNodes() <= 0)
+				{
+					//probabilmente il file non è corretto, o non ci sono nodi per qualche motivo
+					textPane.setText("Error in network configuration file. No node found.");
+					return;
+				}
+				
 				
 				/* CONFIGURAZIONE DEGLI OPERATORI */		
-				EncSchemes encSchemes = new EncSchemes();				
+				EncSchemes encSchemes = new EncSchemes();		
 				
-				/* ANALISI DELLE QUERY */
+				/* ANALISI DEGLI OPERATORI */
+				parser.parseDocument(queryInput.getAbsolutePath());	//costruzione della lista di operatori
+				if(parser.operators.size() <= 0)
+				{
+					//probabilmente il file non è corretto, o non ci sono operatori per qualche motivo
+					textPane.setText("Error in query configuration file. No operator found.");
+					return;
+				}
+				
+				/* ANALISI DELLA QUERY */
 				String resultFile = outputDirectory+"\\results.txt";
 				PrintWriter writer = null;
 				try {
@@ -322,16 +339,11 @@ public class Graph {
 					e.printStackTrace();
 				}	
 							
-				
-				/* SINGOLA QUERY */
-				writer.println("QUERY ");
-				parser.parseDocument(queryInput.getAbsolutePath());	//costruzione della lista di operatori
-				
 				ArrayList<Attempt> results = new ArrayList<Attempt>();
 				Analyzer analyzer = new Analyzer();
-				results = analyzer.Analyze(encSchemes, parser.operators, network); //nalaisi
+				results = analyzer.Analyze(encSchemes, parser.operators, network); //analisi	
 				
-				
+				writer.println("QUERY ");							
 				writer.println("MIN TIME: "+analyzer.getMinTime()+ " sec.");
 				writer.println("MIN COST: "+analyzer.getMinCost()+ " €");
 				writer.println("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations());

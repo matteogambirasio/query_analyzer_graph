@@ -19,6 +19,11 @@ public class Network {
 		return output;
 			
 	}
+	
+	public int checkNodes()
+	{
+		return nodes.size();
+	}
 
 	public String searchNodeByRelation(String dataNeeded) { //se ci sono più nodi candidati
 															//devo scegliere il migliore per throughput
