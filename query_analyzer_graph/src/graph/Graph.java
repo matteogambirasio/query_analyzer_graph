@@ -331,7 +331,7 @@ public class Graph {
 				}
 				
 				/* ANALISI DELLA QUERY */
-				String resultFile = outputDirectory+"\\results.txt";
+				String resultFile = outputDirectory+"\\results_"+queryInput.getName()+".txt";
 				PrintWriter writer = null;
 				try {
 					writer = new PrintWriter(resultFile, "UTF-8");
