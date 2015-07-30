@@ -191,6 +191,11 @@ public class Graph {
 		btnCredits.setBounds(567, 269, 67, 23);
 		frmTpchAnalysis.getContentPane().add(btnCredits);
 		
+		final JButton btnBenchmark = new JButton("TPCH Benchmark");
+		btnBenchmark.setEnabled(false);
+		btnBenchmark.setBounds(432, 269, 127, 23);
+		frmTpchAnalysis.getContentPane().add(btnBenchmark);
+		
 		
 		//directory dell'output
 		//SELEZIONE CARTELLA DI DESTINAZIONE 
@@ -212,6 +217,8 @@ public class Graph {
 					
 					if(queryLoaded && networkLoaded && outputDirectoryLoaded)
 						btnAnalyze.setEnabled(true); //abilito l'analisi
+					if(networkLoaded && outputDirectoryLoaded)
+						btnBenchmark.setEnabled(true);
 				}
 			}
 		});
@@ -287,6 +294,8 @@ public class Graph {
 						networkLoaded = true;
 						if(queryLoaded && networkLoaded && outputDirectoryLoaded)
 							btnAnalyze.setEnabled(true); //abilito l'analisi
+						if(networkLoaded && outputDirectoryLoaded)
+							btnBenchmark.setEnabled(true);
 						
 					}
 					else
@@ -357,6 +366,69 @@ public class Graph {
 				lblMinTimeRes.setText(String.valueOf(analyzer.getMinTime()));
 				lblGeneratedOutputRes.setText(resultFile);
 				textPane.setText("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations()+"\nMIN COST OPERATIONS:"+analyzer.getMinCostOperations());
+				
+			}
+		});
+		
+		
+		btnBenchmark.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				ParserXML parser = new ParserXML(); //parser che crea la struttura ad albero
+				ParserNetwork parsernetwork = new ParserNetwork();
+				@SuppressWarnings("unused")
+				TPCHUtils tpchUtils = new TPCHUtils();
+							
+				/* PARSING DEL NETWORK */
+				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
+				if(network.checkNodes() <= 0)
+				{
+					//probabilmente il file non è corretto, o non ci sono nodi per qualche motivo
+					textPane.setText("Error in network configuration file. No node found.");
+					return;
+				}
+				
+				
+				/* CONFIGURAZIONE DEGLI OPERATORI */		
+				EncSchemes encSchemes = new EncSchemes();		
+				
+				/* testo tutto il benchmark TPCH */
+				for(int t = 1;t<=TPCHUtils.tpch_num;t++)
+				{
+					String resultFile = outputDirectory+"\\results_query_"+t+".txt";
+					
+					PrintWriter writer = null;
+					try {
+						writer = new PrintWriter(resultFile, "UTF-8");
+					} catch (FileNotFoundException | UnsupportedEncodingException e) {
+						e.printStackTrace();
+					}	
+					
+					writer.println("QUERY "+t);
+					parser.clearParser();
+					parser.parseDocument(getClass().getResource("/tpch/"+t+".xml").getPath()); //leggo direttamente dal package
+					//parser.parseDocument("res/"+t+".xml");	
+					
+					ArrayList<Attempt> results = new ArrayList<Attempt>();
+					Analyzer analyzer = new Analyzer();
+					results = analyzer.Analyze(encSchemes, parser.operators, network);
+					
+					writer.println("MIN TIME: "+analyzer.getMinTime()+ " sec.");
+					writer.println("MIN COST: "+analyzer.getMinCost()+ " €");
+					writer.println("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations());
+					writer.println("MIN COST OPERATIONS: "+analyzer.getMinCostOperations());
+					writer.println("RESULTS: "+results.toString());
+					writer.close();
+					
+					//mostro anche nella form
+					lblMinCostRes.setText(String.valueOf(analyzer.getMinCost()));
+					lblMinTimeRes.setText(String.valueOf(analyzer.getMinTime()));
+					lblGeneratedOutputRes.setText(resultFile);
+					
+					String currentPane = textPane.getText();
+					textPane.setText("TPCH Query "+t+": OK\n"+currentPane);
+				}
+				
 				
 			}
 		});
