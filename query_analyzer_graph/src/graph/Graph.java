@@ -9,7 +9,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import javax.swing.JFrame;
 
@@ -33,6 +36,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.Font;
 import java.awt.Color;
+
 import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.LineBorder;
@@ -50,7 +54,10 @@ public class Graph {
 	private String benchmarkDirectory;
 	private boolean benchmark;
 	public Credits creditsFrame; 
-
+	
+	public final JLabel lblReady = new JLabel("Ready");
+	
+	
 	/**
 	 * Launch the application.
 	 */
@@ -67,13 +74,33 @@ public class Graph {
 			}
 		});
 	}
+	
+	public void setStatus(String s)
+	{
+		if(s.equals("Running"))
+		{
+			lblReady.setText("Running");
+			lblReady.setForeground(new Color(128,0,0));
+		}
+		else
+		{
+			lblReady.setText("Ready");
+			lblReady.setForeground(new Color(0,128,0));
+		}
+		
+	}
 
 	/**
 	 * Create the application.
 	 */
 	public Graph() {
+		
+		lblReady.setForeground(new Color(0, 128, 0));
+		lblReady.setBounds(58, 301, 46, 14);
+		
 		initialize();
 	}
+		
 
 	/**
 	 * Initialize the contents of the frame.
@@ -135,9 +162,9 @@ public class Graph {
 		lblMinCostRes.setBounds(191, 243, 368, 14);
 		frmTpchAnalysis.getContentPane().add(lblMinCostRes);
 		
-		JLabel lblOperations = new JLabel("Operations");
+		JLabel lblOperations = new JLabel("Status:");
 		lblOperations.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblOperations.setBounds(10, 301, 424, 14);
+		lblOperations.setBounds(10, 301, 54, 14);
 		frmTpchAnalysis.getContentPane().add(lblOperations);
 		
 		JLabel lblGeneratedOutput = new JLabel("Generated output:");
@@ -180,7 +207,7 @@ public class Graph {
 		textPane.setEditable(false);
 		JScrollPane jsp = new JScrollPane(textPane);
 		jsp.setBounds(10, 326, 624, 271);
-		frmTpchAnalysis.getContentPane().add(jsp);		
+		frmTpchAnalysis.getContentPane().add(jsp);	
 		
 		JButton btnCredits = new JButton("Credits");
 		btnCredits.setBounds(567, 297, 67, 23);
@@ -219,7 +246,8 @@ public class Graph {
 		btnBenchmark.setEnabled(false);
 		btnBenchmark.setBackground(new Color(173, 255, 47));
 		
-		
+		frmTpchAnalysis.getContentPane().add(lblReady);
+				
 		btnBenchmark.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				
@@ -227,6 +255,7 @@ public class Graph {
 				ParserNetwork parsernetwork = new ParserNetwork();
 				@SuppressWarnings("unused")
 				TPCHUtils tpchUtils = new TPCHUtils();
+								
 							
 				/* PARSING DEL NETWORK */
 				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
@@ -239,7 +268,11 @@ public class Graph {
 				
 				
 				/* CONFIGURAZIONE DEGLI OPERATORI */		
-				EncSchemes encSchemes = new EncSchemes();		
+				EncSchemes encSchemes = new EncSchemes();
+				
+				textPane.setText("Please wait...");
+				
+				setStatus("Running");
 				
 				/* testo tutto il benchmark TPCH */
 				for(int t = 1;t<=TPCHUtils.tpch_num;t++)
@@ -260,13 +293,21 @@ public class Graph {
 					
 					ArrayList<Attempt> results = new ArrayList<Attempt>();
 					Analyzer analyzer = new Analyzer();
+					
+					DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyy HH:mm:ss");
+					Date date = new Date();
+					writer.println("START ELABORATION: "+dateFormat.format(date));
+					
 					results = analyzer.Analyze(encSchemes, parser.operators, network);
+					
+					date = new Date();
+					writer.println("END ELABORATION: "+dateFormat.format(date));
 					
 					writer.println("MIN TIME: "+analyzer.getMinTime()+ " sec.");
 					writer.println("MIN COST: "+analyzer.getMinCost()+ " €");
 					writer.println("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations());
 					writer.println("MIN COST OPERATIONS: "+analyzer.getMinCostOperations());
-					writer.println("RESULTS: "+results.toString());
+					writer.println("RESULTS: "+results.toString());		
 					writer.close();
 					
 					//mostro anche nella form
@@ -278,6 +319,7 @@ public class Graph {
 					textPane.setText("TPCH Query "+t+": OK\n"+currentPane);
 				}
 				
+				setStatus("Ready");
 				
 			}
 		});
@@ -425,6 +467,7 @@ public class Graph {
 				ParserNetwork parsernetwork = new ParserNetwork();
 				@SuppressWarnings("unused")
 				TPCHUtils tpchUtils = new TPCHUtils();
+				
 							
 				/* PARSING DEL NETWORK */
 				Network network = new Network(parsernetwork.parseDocument(networkInput.getAbsolutePath()));
@@ -448,6 +491,9 @@ public class Graph {
 					return;
 				}
 				
+				textPane.setText("Please wait...");
+				setStatus("Running");
+				
 				/* ANALISI DELLA QUERY */
 				String resultFile = outputDirectory+"\\results_"+queryInput.getName()+".txt";
 				PrintWriter writer = null;
@@ -459,15 +505,21 @@ public class Graph {
 							
 				ArrayList<Attempt> results = new ArrayList<Attempt>();
 				Analyzer analyzer = new Analyzer();
-				results = analyzer.Analyze(encSchemes, parser.operators, network); //analisi	
 				
-				writer.println("QUERY ");							
+				DateFormat dateFormat = new SimpleDateFormat("dd-MM-yyy HH:mm:ss");
+				Date date = new Date();
+				writer.println("START ELABORATION: "+dateFormat.format(date));
+				
+				results = analyzer.Analyze(encSchemes, parser.operators, network);
+				
+				date = new Date();
+				writer.println("END ELABORATION: "+dateFormat.format(date));
+				
 				writer.println("MIN TIME: "+analyzer.getMinTime()+ " sec.");
 				writer.println("MIN COST: "+analyzer.getMinCost()+ " €");
 				writer.println("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations());
 				writer.println("MIN COST OPERATIONS: "+analyzer.getMinCostOperations());
-				writer.println("RESULTS: "+results.toString());
-				
+				writer.println("RESULTS: "+results.toString());		
 				writer.close();
 				
 				//mostro anche nella form
@@ -475,6 +527,8 @@ public class Graph {
 				lblMinTimeRes.setText(String.valueOf(analyzer.getMinTime()));
 				lblGeneratedOutputRes.setText(resultFile);
 				textPane.setText("MIN TIME OPERATIONS: "+analyzer.getMinTimeOperations()+"\nMIN COST OPERATIONS:"+analyzer.getMinCostOperations());
+				
+				setStatus("Ready");
 				
 			}
 		});
