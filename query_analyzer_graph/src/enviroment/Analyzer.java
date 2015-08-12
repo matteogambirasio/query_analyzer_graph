@@ -316,13 +316,13 @@ public class Analyzer {
 									{
 																				
 										//se non si tratta di una funzione uso gli schemi per gli operatori
+										//se non si tratta di una funzione uso gli schemi per gli operatori
 										if(!function)
 										{
 											int itemWidth = localOperator.getPlanWidth();
-											if(localOperator.getRelationName() != null) //fa riferimento ad una tabella
-											{
-												String table = localOperator.getRelationName();
+											
 												String column = TPCHUtils.getItemColumn(item);
+												String table = TPCHUtils.getItemTable(item);
 												if(TPCHUtils.getStructure().containsKey(table))
 												{
 													itemWidth = TPCHUtils.findWidthByColumn(table,column);
@@ -339,15 +339,7 @@ public class Analyzer {
 													localMoney += nodeMoney;
 												}										
 												
-											}
-											else
-											{
-												nodeTime = getEncryptionCost(selectedEnc, localOperator.getPlanRows(), itemWidth, localNode);
-												localCost += nodeTime;
-												nodeMoney = getEncryptionNodeCost(localNode, nodeTime);
-												localMoney += nodeMoney;
-											}
-																			
+																													
 											localOperations += localOperator.getNodeType()+"-> ID: "+localOperator.getId()
 													+"-> IDParent: "+localOperator.getIdParent()			
 													+" -> Item: "+k+" -> Width: "+itemWidth+" -> Enc: "+selectedEnc+" -> Time: "+nodeTime+" -> Cost: "+nodeMoney+"\n";
