@@ -15,14 +15,14 @@ public class Analyzer {
 	 * Classe effettiva per il testing delle alternative
 	 */
 	
-	//version 0.3.0
+	//version 0.7.0
 	
 	//variabili frutto dell'analisi temporale/costo
 	private double minCost;
 	private double minTime;
 	private String defOperations;		 //operazioni per il costo minimo in termini di tempo
 	private String minCostDefOperations; //operazioni per il costo minimo in termini economici
-		
+	
 	public Analyzer()
 	{
 		minTime = -1;
@@ -143,7 +143,6 @@ public class Analyzer {
 	
 	public ArrayList<Attempt> Analyze(EncSchemes encSchemes, ArrayList<Operator> operators, Network network)
 	{
-				
 		//output
 		ArrayList<Attempt> output = new ArrayList<Attempt>();
 		
@@ -200,6 +199,7 @@ public class Analyzer {
 		//2.2.3 ricerca esaustiva della soluzione 
 		while(networkAttemps > 0) 
 		{
+			System.out.println("Attempt: "+networkAttemps);
 			//2.3 parto da quella foglia per risalire la gerarchia, ogni step sarà -1 al valore attuale
 			//facilitato dalle caratteristiche
 			
@@ -316,7 +316,6 @@ public class Analyzer {
 									{
 																				
 										//se non si tratta di una funzione uso gli schemi per gli operatori
-										//se non si tratta di una funzione uso gli schemi per gli operatori
 										if(!function)
 										{
 											int itemWidth = localOperator.getPlanWidth();
@@ -375,16 +374,40 @@ public class Analyzer {
 						{
 							for(int m = 0;m<implicit.size();m++)
 							{
-								ArrayList<String> implicitAttributes = TPCHUtils.findColumnsInString(implicit.get(m));
-								for(int n = 0; n<implicitAttributes.size(); n++)
+								if(!TPCHUtils.isEquality(implicit.get(m)))
 								{
-									String nodePolicy = localNode.verifyPolicy(implicitAttributes.get(n));
-									if(nodePolicy.equals("No")) //non c'è visibilità di nessun tipo per quel nodo
+									ArrayList<String> implicitAttributes = TPCHUtils.findColumnsInString(implicit.get(m));
+									for(int n = 0; n<implicitAttributes.size(); n++)
 									{
-										admissible = false;
-										break;
+										String nodePolicy = localNode.verifyPolicy(implicitAttributes.get(n));
+										if(nodePolicy.equals("No")) //non c'è visibilità di nessun tipo per quel nodo
+										{
+											admissible = false;
+											break;
+										}
 									}
 								}
+								else
+								{
+									//nell'ugualgianza mi aspetto due colonne (join, hash, ...)
+									ArrayList<String> implicitAttributes = TPCHUtils.findColumnsInString(implicit.get(m));
+									String prevPolicy = localNode.verifyPolicy(implicitAttributes.get(0));
+									for(int n = 1; n<implicitAttributes.size(); n++)
+									{
+										String currPolicy = localNode.verifyPolicy(implicitAttributes.get(n));
+										if(currPolicy.equals("No") || !currPolicy.equals(prevPolicy)) //non c'è visibilità oppure c'è conflitto
+										{
+											//le soluzioni Plain = Encrypted sono svantaggiose, meglio Plain = Plain o Enc = Enc 
+											admissible = false;
+											break;
+										}
+										else
+											prevPolicy = currPolicy;
+									}
+									
+								}
+								
+								
 								if(admissible == false)
 								{
 									break;
