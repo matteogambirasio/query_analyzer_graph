@@ -383,8 +383,8 @@ public class Analyzer {
 							for(int m = 0;m<implicit.size();m++)
 							{
 								/*trick*/
-								/*if(implicit.get(m).indexOf("::") > -1)
-									continue;*/
+								if(implicit.get(m).indexOf("::") > -1)
+									continue;
 								
 								
 								if(!TPCHUtils.isEquality(implicit.get(m)))
